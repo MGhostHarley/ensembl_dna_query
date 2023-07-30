@@ -1,18 +1,15 @@
+import argparse
 import csv
 import json
+import os.path
+
 import requests
 from pprint import pprint as pp
 
-# READ FILES
-with open("variants.txt") as f:
-    variants = [line.rstrip("\n") for line in f]
-# print(variants)
-
-# API CALLS HERE
 
 """
 AFTERNOON
-1. take terminal input
+1. take terminal input XX
 2. refactor code
 3. better error handling
 4. Out put errors to file
@@ -30,26 +27,64 @@ MONDAY
 
 """
 
+# PARSER
+
+
+def is_valid_file(arg: str) -> bool:
+    if not os.path.isfile(arg) and not arg.endswith(".txt"):
+        return False
+
+    return True
+
+
+parser = argparse.ArgumentParser(
+    description="Get variant files",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument(
+    "file_path", help="File path of variant file. Must be .txt", type=str
+)
+
+
+args = parser.parse_args()
+config = vars(args)
+file_name = config.get("file_path")
+
+if not is_valid_file(config.get("file_path", None)):
+    parser.error(
+        f"The file { config.get('file_path', None)} does not exist or is not a .txt file"
+    )
+
+print(config)
+
+# READ FILES
+with open(file_name) as file:
+    variants = [line.rstrip("\n") for line in file]
+# print(variants)
+
+# API CALLS HERE
+
+
 request_list = []
 error_list = []
 headers = {"Content-Type": "application/json"}
-url = r"http://rest.ensembl.org/vep/human/hgvs/NC_000001.11:g.40819893T>A"
-# # url = r"http://rest.ensembl.org/vep/human/hgvs/NC_000006.12:g.152387156G>A"
+# # url = r"http://rest.ensembl.org/vep/human/hgvs/NC_000001.11:g.40819893T>A"
+# # # url = r"http://rest.ensembl.org/vep/human/hgvs/NC_000006.12:g.152387156G>A"
 
-# try:
-#     response = requests.get(url, headers=headers)
-#     response.raise_for_status()
-#     formatted_response = response.json()
-#     pp(formatted_response)
+# # try:
+# #     response = requests.get(url, headers=headers)
+# #     response.raise_for_status()
+# #     formatted_response = response.json()
+# #     pp(formatted_response)
 
 
-# except requests.exceptions.HTTPError as errh:
-#     print("Http Error:", errh)
+# # except requests.exceptions.HTTPError as errh:
+# #     print("Http Error:", errh)
 
 
 for variant in variants:
     url = r"http://rest.ensembl.org/vep/human/hgvs/" + variant
-    # print(url)
+    print(url)
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
@@ -81,8 +116,8 @@ for variant in variants:
     request_list.append(formatted_response)
 
 
-# pp(request_list)
-# pp(error_list)
+pp(request_list)
+pp(error_list)
 print(len(request_list))
 
 """
@@ -97,9 +132,9 @@ print(len(request_list))
 """
 
 
-# PARSING
+### PARSING
 flattened = [request for requests in request_list for request in requests]
-# pp(flattened)
+pp(flattened)
 
 reduced_list = []
 
@@ -120,7 +155,7 @@ for flat in flattened:
     )
 pp(reduced_list)
 
-# OUTPUT FILES
+### OUTPUT FILES
 with open("output.tsv", "w") as output_file:
     dw = csv.DictWriter(output_file, sorted(reduced_list[0].keys()), delimiter="\t")
     dw.writeheader()
