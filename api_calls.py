@@ -3,32 +3,11 @@ import csv
 import datetime
 import json
 import os.path
-
 import requests
+import time
+
 
 from typing import List
-from pprint import pprint as pp
-
-
-"""
-AFTERNOON
-1. take terminal input XX
-2. refactor code XX
-3. better error handling XX
-4. Out put errors to file XX
-5. generate timestamp for file names XXgit 
-
-NIGHT:
-1. pytest for testing
-2. create a package
-3. test.
-
-MONDAY
-1. Code walk through
-2. Read Me
-3. Final Tests
-
-"""
 
 
 ################# HELPER FUNCTIONS #################
@@ -36,6 +15,11 @@ def is_valid_file(arg: str) -> bool:
     if not os.path.isfile(arg) and not arg.endswith(".txt"):
         return False
     return True
+
+
+def generate_file_id() -> str:
+    timestamp = str(datetime.datetime.now().timestamp())
+    return timestamp[: timestamp.index(".")]
 
 
 def parse_ensemble_response(response_list: List[List[dict]]) -> List[dict]:
@@ -57,7 +41,6 @@ def parse_ensemble_response(response_list: List[List[dict]]) -> List[dict]:
                 ),
             }
         )
-    pp(reduced_list)
     return reduced_list
 
 
@@ -71,17 +54,17 @@ def open_file(file_name: str) -> List[str]:
     return variants
 
 
-def generate_file_id() -> str:
-    timestamp = str(datetime.datetime.now().timestamp())
-    return timestamp[: timestamp.index(".")]
-
-
 def output_results(results: List[List[dict]]) -> None:
     result, errors = results
     file_id = generate_file_id()
 
-    output_file_name = "output_" + file_id + ".tsv"
-    error_file_name = "error_" + file_id + ".tsv"
+    if not os.path.exists("results"):
+        os.makedirs("results")
+
+    # System Agnostic filepath creation
+    os.path.join("results", f"output_{file_id}.tsv")
+    output_file_name = os.path.join("results", f"output_{file_id}.tsv")
+    error_file_name = os.path.join("results", f"error_{file_id}.tsv")
 
     with open(output_file_name, "w") as output_file:
         dw = csv.DictWriter(output_file, sorted(result[0].keys()), delimiter="\t")
@@ -126,6 +109,9 @@ def command_parser() -> str:
 def query_ensemble_api(variants: List[str]) -> List[dict]:
     response_list = []
     error_list = []
+    requests_per_second = 15
+    request_count = 0
+    last_request = 0
 
     if not variants:
         error_list.append(
@@ -140,8 +126,20 @@ def query_ensemble_api(variants: List[str]) -> List[dict]:
 
     for variant in variants:
         url = base_url + variant
+
+        # Quick and dirty check to see if we need to be rate limited.
+        # TO DO: Make this a stand alone decorator
+        if request_count >= requests_per_second:
+            delta = time.time() - last_request
+            if delta < 1:
+                print("Rate Limit Per Second Hit")
+                time.sleep(1 - delta)
+            last_request = time.time()
+            request_count = 0
+
         try:
             response = requests.get(url, headers=headers)
+            request_count += 1
             response.raise_for_status()
 
         except requests.exceptions.HTTPError as http_error:
@@ -181,27 +179,12 @@ def query_ensemble_api(variants: List[str]) -> List[dict]:
 
 def main() -> None:
     file_path = command_parser()
-    print(file_path)
 
     file_contents = open_file(file_path)
-    print(file_contents)
 
     results = query_ensemble_api(file_contents)
-    print(results)
     output_results(results)
 
 
-main()
-
-# # url = r"http://rest.ensembl.org/vep/human/hgvs/NC_000001.11:g.40819893T>A"
-# # # url = r"http://rest.ensembl.org/vep/human/hgvs/NC_000006.12:g.152387156G>A"
-
-# # try:
-# #     response = requests.get(url, headers=headers)
-# #     response.raise_for_status()
-# #     formatted_response = response.json()
-# #     pp(formatted_response)
-
-
-# # except requests.exceptions.HTTPError as errh:
-# #     print("Http Error:", errh)
+if __name__ == "__main__":
+    main()

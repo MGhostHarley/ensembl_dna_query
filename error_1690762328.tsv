@@ -1,2 +1,0 @@
-error_description	http_error	variant
-"{'error': ""Unable to parse HGVS notation 'NC_000001.11:g.40819893T>A': Reference allele extracted from NC_000001.11:40819893-40819893 (G) does not match reference allele given by HGVS notation NC_000001.11:g.40819893T>A (T)""}"	400 Client Error: Bad Request for url: http://rest.ensembl.org/vep/human/hgvs/NC_000001.11:g.40819893T%3EA	NC_000001.11:g.40819893T>A
