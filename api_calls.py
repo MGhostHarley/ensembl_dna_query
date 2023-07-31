@@ -16,7 +16,7 @@ AFTERNOON
 2. refactor code XX
 3. better error handling XX
 4. Out put errors to file XX
-5. generate timestamp for file names
+5. generate timestamp for file names XXgit 
 
 NIGHT:
 1. pytest for testing
