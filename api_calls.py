@@ -1,5 +1,6 @@
 import argparse
 import csv
+import datetime
 import json
 import os.path
 
@@ -70,14 +71,24 @@ def open_file(file_name: str) -> List[str]:
     return variants
 
 
+def generate_file_id() -> str:
+    timestamp = str(datetime.datetime.now().timestamp())
+    return timestamp[: timestamp.index(".")]
+
+
 def output_results(results: List[List[dict]]) -> None:
     result, errors = results
-    with open("output.tsv", "w") as output_file:
+    file_id = generate_file_id()
+
+    output_file_name = "output_" + file_id + ".tsv"
+    error_file_name = "error_" + file_id + ".tsv"
+
+    with open(output_file_name, "w") as output_file:
         dw = csv.DictWriter(output_file, sorted(result[0].keys()), delimiter="\t")
         dw.writeheader()
         dw.writerows(result)
 
-    with open("error.tsv", "w") as error_file:
+    with open(error_file_name, "w") as error_file:
         dw = csv.DictWriter(error_file, sorted(errors[0].keys()), delimiter="\t")
         dw.writeheader()
         dw.writerows(errors)
